@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Task Manager</title>
+    <style>
+/* Calendar Styles */
+.view-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.view-btn {
+    padding: 10px 20px;
+    border: 2px solid white;
+    background: transparent;
+    color: white;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.view-btn.active,
+.view-btn:hover {
+    background: white;
+    color: #667eea;
+}
+
+.calendar-section {
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    display: none;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.calendar-nav {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.nav-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.calendar-day {
+    background: white;
+    padding: 10px;
+    min-height: 80px;
+    position: relative;
+}
+
+.calendar-day.other-month {
+    opacity: 0.3;
+}
+
+.calendar-day.today {
+    background: #e3f2fd;
+}
+
+.day-number {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.task-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin: 1px;
+}
+
+.task-dot.assignment { background: #1976d2; }
+.task-dot.test { background: #f57c00; }
+.task-dot.mid { background: #c2185b; }
+.task-dot.final { background: #7b1fa2; }
+
+.export-section {
+    margin-top: 20px;
+    text-align: center;
+}
+</style>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 1s ease;
+        }
+
+        .header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.1rem;
+        }
+
+        .add-task-section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: fadeInUp 1s ease;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #56ab2f, #a8e6cf);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            color: white;
+        }
+
+        .tasks-section {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 8px 20px;
+            border: 2px solid #667eea;
+            background: transparent;
+            color: #667eea;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .filter-btn.active,
+        .filter-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .tasks-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .task-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease;
+        }
+
+        .task-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .task-card.completed {
+            border-left-color: #56ab2f;
+            opacity: 0.8;
+        }
+
+        .task-card.overdue {
+            border-left-color: #ff416c;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .task-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .task-course {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .task-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .type-assignment { background: #e3f2fd; color: #1976d2; }
+        .type-test { background: #fff3e0; color: #f57c00; }
+        .type-mid { background: #fce4ec; color: #c2185b; }
+        .type-final { background: #f3e5f5; color: #7b1fa2; }
+
+        .task-details {
+            margin: 15px 0;
+        }
+
+        .task-due-date {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+
+        .due-icon {
+            margin-right: 8px;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-sm {
+            padding: 6px 15px;
+            font-size: 0.85rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+            margin-top: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state img {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .add-task-section,
+            .tasks-section {
+                padding: 20px;
+            }
+
+            .filters {
+                justify-content: center;
+            }
+
+            .task-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .task-actions {
+                flex-direction: column;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Student Task Manager</h1>
+            <p>Stay organized with your assignments, tests, and exams</p>
+        </div>
+
+
+<div class="view-toggle">
+    <button class="view-btn active" data-view="tasks">📋 Task View</button>
+    <button class="view-btn" data-view="calendar">📅 Calendar View</button>
+</div>
+
+<!-- Add this new calendar section after view-toggle -->
+<div class="calendar-section" id="calendarSection">
+    <div class="calendar-header">
+        <h2 id="currentMonth">Calendar View</h2>
+        <div class="calendar-nav">
+            <button class="nav-btn" id="prevMonth">◀</button>
+            <button class="nav-btn" id="nextMonth">▶</button>
+            <button class="nav-btn" id="todayBtn">Today</button>
+        </div>
+    </div>
+    <div class="calendar-grid" id="calendarGrid">
+        <!-- Calendar days will be generated here -->
+    </div>
+    <div class="export-section">
+        <button class="btn btn-primary" onclick="taskManager.exportToGoogleCalendar()">
+            📅 Export to Google Calendar
+        </button>
+    </div>
+</div>
+
+        
+        <!-- Statistics -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalTasks">0</div>
+                <div class="stat-label">Total Tasks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completedTasks">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingTasks">0</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="overdueTasks">0</div>
+                <div class="stat-label">Overdue</div>
+            </div>
+        </div>
+
+        <!-- Add Task Section -->
+        <div class="add-task-section">
+            <h2>Add New Task</h2>
+            <form id="taskForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="taskTitle">Task Title</label>
+                        <input type="text" id="taskTitle" required placeholder="Enter task title">
+                    </div>
+                    <div class="form-group">
+                        <label for="courseCode">Course Code</label>
+                        <input type="text" id="courseCode" required placeholder="e.g., CSE301">
+                    </div>
+                    <div class="form-group">
+                        <label for="courseName">Course Name</label>
+                        <input type="text" id="courseName" required placeholder="e.g., Data Structures">
+                    </div>
+                    <div class="form-group">
+                        <label for="taskType">Task Type</label>
+                        <select id="taskType" required>
+                            <option value="">Select Type</option>
+                            <option value="assignment">Assignment</option>
+                            <option value="test">Class Test</option>
+                            <option value="mid">Mid Exam</option>
+                            <option value="final">Final Exam</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dueDate">Due Date</label>
+                        <input type="date" id="dueDate" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Task</button>
+            </form>
+        </div>
+
+        <!-- Tasks Section -->
+        <div class="tasks-section">
+            <h2>Your Tasks</h2>
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All Tasks</button>
+                <button class="filter-btn" data-filter="assignment">Assignments</button>
+                <button class="filter-btn" data-filter="test">Tests</button>
+                <button class="filter-btn" data-filter="mid">Mid Exams</button>
+                <button class="filter-btn" data-filter="final">Final Exams</button>
+                <button class="filter-btn" data-filter="completed">Completed</button>
+                <button class="filter-btn" data-filter="pending">Pending</button>
+            </div>
+            <div class="tasks-grid" id="tasksContainer">
+                <div class="empty-state">
+                    <div style="font-size: 4rem; margin-bottom: 20px;">📝</div>
+                    <h3>No tasks yet</h3>
+                    <p>Add your first task above to get started!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+        class TaskManager {
+        
+            constructor() {
+                this.tasks = this.loadTasks();
+                this.currentFilter = 'all';
+                this.currentDate = new Date();
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.bindCalendarEvents();
+                this.renderTasks();
+                this.updateStats();
+                this.setMinDate();
+            }
+
+            bindEvents() {
+                document.getElementById('taskForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addTask();
+                });
+
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setActiveFilter(e.target.dataset.filter);
+                    });
+                });
+            }
+
+            bindCalendarEvents() {
+                // View toggle
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.switchView(e.target.dataset.view);
+                    });
+                });
+
+                // Calendar navigation
+                document.getElementById('prevMonth').addEventListener('click', () => {
+                    this.currentDate.setMonth(this.currentDate.getMonth() - 1);
+                    this.renderCalendar();
+                });
+
+                document.getElementById('nextMonth').addEventListener('click', () => {
+                    this.currentDate.setMonth(this.currentDate.getMonth() + 1);
+                    this.renderCalendar();
+                });
+
+                document.getElementById('todayBtn').addEventListener('click', () => {
+                    this.currentDate = new Date();
+                    this.renderCalendar();
+                });
+            }
+
+            switchView(view) {
+                document.querySelectorAll('.view-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-view="${view}"]`).classList.add('active');
+
+                if (view === 'calendar') {
+                    document.querySelector('.tasks-section').style.display = 'none';
+                    document.getElementById('calendarSection').style.display = 'block';
+                    this.renderCalendar();
+                } else {
+                    document.querySelector('.tasks-section').style.display = 'block';
+                    document.getElementById('calendarSection').style.display = 'none';
+                }
+            }
+
+            renderCalendar() {
+                const year = this.currentDate.getFullYear();
+                const month = this.currentDate.getMonth();
+                
+                // Update header
+                document.getElementById('currentMonth').textContent = 
+                    new Date(year, month).toLocaleDateString('en-US', { 
+                        month: 'long', 
+                        year: 'numeric' 
+                    });
+
+                // Get first day of month and number of days
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const startDate = new Date(firstDay);
+                startDate.setDate(startDate.getDate() - firstDay.getDay());
+
+                const calendarGrid = document.getElementById('calendarGrid');
+                calendarGrid.innerHTML = '';
+
+                // Add day headers
+                const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                dayHeaders.forEach(day => {
+                    const dayHeader = document.createElement('div');
+                    dayHeader.className = 'calendar-day';
+                    dayHeader.style.background = '#f5f5f5';
+                    dayHeader.style.fontWeight = '600';
+                    dayHeader.style.textAlign = 'center';
+                    dayHeader.textContent = day;
+                    calendarGrid.appendChild(dayHeader);
+                });
+
+                // Generate 6 weeks of days
+                for (let i = 0; i < 42; i++) {
+                    const cellDate = new Date(startDate);
+                    cellDate.setDate(startDate.getDate() + i);
+                    
+                    const dayElement = document.createElement('div');
+                    dayElement.className = 'calendar-day';
+                    
+                    if (cellDate.getMonth() !== month) {
+                        dayElement.classList.add('other-month');
+                    }
+                    
+                    if (this.isToday(cellDate)) {
+                        dayElement.classList.add('today');
+                    }
+
+                    dayElement.innerHTML = `
+                        <div class="day-number">${cellDate.getDate()}</div>
+                        <div class="day-tasks">${this.getTasksForDate(cellDate)}</div>
+                    `;
+
+                    calendarGrid.appendChild(dayElement);
+                }
+            }
+
+            isToday(date) {
+                const today = new Date();
+                return date.toDateString() === today.toDateString();
+            }
+
+            getTasksForDate(date) {
+                const tasksForDate = this.tasks.filter(task => {
+                    const taskDate = new Date(task.dueDate);
+                    return taskDate.toDateString() === date.toDateString();
+                });
+
+                return tasksForDate.map(task => 
+                    `<div class="task-item ${task.taskType} ${task.completed ? 'completed' : ''}" title="${task.title} - ${task.courseCode}">
+                        <span class="task-dot ${task.taskType}"></span>
+                        <span class="task-text">${task.title.length > 15 ? task.title.substring(0, 15) + '...' : task.title}</span>
+                    </div>`
+                ).join('');
+            }
+
+            exportToGoogleCalendar() {
+                let calendarData = '';
+                
+                this.tasks.forEach(task => {
+                    const dueDate = new Date(task.dueDate);
+                    const startDate = dueDate.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                    
+                    // Create end date (1 hour later for events, all day for tasks)
+                    const endDate = new Date(dueDate.getTime() + 60 * 60 * 1000)
+                        .toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+                    calendarData += `BEGIN:VEVENT\n`;
+                    calendarData += `DTSTART:${startDate}\n`;
+                    calendarData += `DTEND:${endDate}\n`;
+                    calendarData += `SUMMARY:${task.title} (${task.courseCode})\n`;
+                    calendarData += `DESCRIPTION:${task.taskType.toUpperCase()} for ${task.courseName}\n`;
+                    calendarData += `UID:${task.id}@studenttaskmanager.com\n`;
+                    calendarData += `END:VEVENT\n`;
+                });
+
+                const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Student Task Manager//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+${calendarData}END:VCALENDAR`;
+
+                // Create download link
+                const blob = new Blob([icsContent], { type: 'text/calendar' });
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'student-tasks.ics';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+                this.showNotification('Calendar exported! You can import this file to Google Calendar', 'success');
+            }
+
+            setMinDate() {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('dueDate').setAttribute('min', today);
+            }
+
+            addTask() {
+                const title = document.getElementById('taskTitle').value;
+                const courseCode = document.getElementById('courseCode').value.toUpperCase();
+                const courseName = document.getElementById('courseName').value;
+                const taskType = document.getElementById('taskType').value;
+                const dueDate = document.getElementById('dueDate').value;
+
+                const task = {
+                    id: Date.now(),
+                    title,
+                    courseCode,
+                    courseName,
+                    taskType,
+                    dueDate,
+                    completed: false,
+                    createdAt: new Date().toISOString()
+                };
+
+                this.tasks.push(task);
+                this.saveTasks();
+                this.renderTasks();
+                this.updateStats();
+                
+                // Reset form
+                document.getElementById('taskForm').reset();
+                
+                // Show success message
+                this.showNotification('Task added successfully!', 'success');
+            }
+
+            toggleComplete(taskId) {
+                const task = this.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.completed = !task.completed;
+                    this.saveTasks();
+                    this.renderTasks();
+                    this.updateStats();
+                    
+                    const message = task.completed ? 'Task marked as complete!' : 'Task marked as pending!';
+                    this.showNotification(message, 'success');
+                }
+            }
+
+            deleteTask(taskId) {
+                if (confirm('Are you sure you want to delete this task?')) {
+                    this.tasks = this.tasks.filter(t => t.id !== taskId);
+                    this.saveTasks();
+                    this.renderTasks();
+                    this.updateStats();
+                    this.showNotification('Task deleted!', 'success');
+                }
+            }
+
+            setActiveFilter(filter) {
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+                this.currentFilter = filter;
+                this.renderTasks();
+            }
+
+            getFilteredTasks() {
+                let filteredTasks = [...this.tasks];
+
+                if (this.currentFilter !== 'all') {
+                    if (this.currentFilter === 'completed') {
+                        filteredTasks = filteredTasks.filter(task => task.completed);
+                    } else if (this.currentFilter === 'pending') {
+                        filteredTasks = filteredTasks.filter(task => !task.completed);
+                    } else {
+                        filteredTasks = filteredTasks.filter(task => task.taskType === this.currentFilter);
+                    }
+                }
+
+                // Sort by due date
+                return filteredTasks.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            }
+
+            renderTasks() {
+                const container = document.getElementById('tasksContainer');
+                const tasks = this.getFilteredTasks();
+
+                if (tasks.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div style="font-size: 4rem; margin-bottom: 20px;">📝</div>
+                            <h3>No tasks found</h3>
+                            <p>No tasks match the current filter.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = tasks.map(task => this.createTaskCard(task)).join('');
+            }
+
+            createTaskCard(task) {
+                const dueDate = new Date(task.dueDate);
+                const today = new Date();
+                const isOverdue = dueDate < today && !task.completed;
+                const daysDiff = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                
+                let dueDateText = '';
+                if (task.completed) {
+                    dueDateText = '✅ Completed';
+                } else if (isOverdue) {
+                    dueDateText = `⚠️ Overdue by ${Math.abs(daysDiff)} days`;
+                } else if (daysDiff === 0) {
+                    dueDateText = '🔥 Due Today';
+                } else if (daysDiff === 1) {
+                    dueDateText = '⏰ Due Tomorrow';
+                } else {
+                    dueDateText = `📅 Due in ${daysDiff} days`;
+                }
+
+                const cardClass = task.completed ? 'completed' : (isOverdue ? 'overdue' : '');
+
+                return `
+                    <div class="task-card ${cardClass}">
+                        <div class="task-header">
+                            <div>
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-course">${task.courseCode}</div>
+                            </div>
+                            <span class="task-type type-${task.taskType}">${task.taskType}</span>
+                        </div>
+                        <div class="task-details">
+                            <div class="task-due-date">
+                                <span class="due-icon">📅</span>
+                                <span>${dueDateText}</span>
+                            </div>
+                            <div class="task-due-date">
+                                <span class="due-icon">📍</span>
+                                <span>Due: ${dueDate.toLocaleDateString('en-US', { 
+                                    weekday: 'short', 
+                                    year: 'numeric', 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                })}</span>
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="btn ${task.completed ? 'btn-primary' : 'btn-success'} btn-sm" 
+                                    onclick="taskManager.toggleComplete(${task.id})">
+                                ${task.completed ? '↩️ Mark Pending' : '✅ Mark Complete'}
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="taskManager.deleteTask(${task.id})">
+                                🗑️ Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateStats() {
+                const total = this.tasks.length;
+                const completed = this.tasks.filter(t => t.completed).length;
+                const pending = total - completed;
+                const overdue = this.tasks.filter(t => {
+                    const dueDate = new Date(t.dueDate);
+                    const today = new Date();
+                    return dueDate < today && !t.completed;
+                }).length;
+
+                document.getElementById('totalTasks').textContent = total;
+                document.getElementById('completedTasks').textContent = completed;
+                document.getElementById('pendingTasks').textContent = pending;
+                document.getElementById('overdueTasks').textContent = overdue;
+            }
+
+            showNotification(message, type = 'info') {
+                const notification = document.createElement('div');
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${type === 'success' ? '#4caf50' : '#2196f3'};
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                    z-index: 1000;
+                    animation: slideInRight 0.3s ease;
+                `;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.animation = 'slideOutRight 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+
+            saveTasks() {
+                try {
+                    localStorage.setItem('studentTasks', JSON.stringify(this.tasks));
+                } catch (error) {
+                    console.warn('Could not save to localStorage:', error);
+                    // Fallback to memory storage
+                    this.tasksInMemory = JSON.stringify(this.tasks);
+                }
+            }
+
+            loadTasks() {
+                try {
+                    const saved = localStorage.getItem('studentTasks');
+                    if (saved) {
+                        return JSON.parse(saved);
+                    }
+                } catch (error) {
+                    console.warn('Could not load from localStorage:', error);
+                }
+                return [];
+            }
+        }
+
+        // Initialize the task manager when the page loads
+        const taskManager = new TaskManager();
+
+        // Add CSS animations for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+    
+</body>
+</html>
